@@ -1082,7 +1082,312 @@
   }
 
 function renderAnalytics() {
+function renderAnalytics() {
+  const topContainer = document.getElementById("topContent");
+  const patternContainer = document.getElementById("contentPatterns");
+  const insightContainer = document.getElementById("automatedInsights");
+  const underContainer = document.getElementById("underperformingContent");
 
+  if (!topContainer) return;
+
+  if (!content.length) {
+    topContainer.innerHTML =
+      '<div class="empty">Belum ada data konten untuk dianalisis.</div>';
+
+    patternContainer.innerHTML = "";
+    insightContainer.innerHTML = "";
+    underContainer.innerHTML = "";
+    return;
+  }
+
+  // =========================
+  // RANKING CONTENT
+  // =========================
+
+  const ranked = [...content].sort(
+    (a, b) => engagementRate(b) - engagementRate(a)
+  );
+
+  // =========================
+  // TOP CONTENT
+  // =========================
+
+  topContainer.innerHTML = ranked
+    .slice(0, 5)
+    .map(
+      (item, index) => `
+        <div style="
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          padding:14px 0;
+          border-bottom:1px solid #20252d;
+          gap:20px;
+        ">
+          <div>
+            <strong>
+              ${index + 1}. ${escapeHtml(item.title)}
+            </strong>
+
+            <div style="
+              margin-top:5px;
+              font-size:12px;
+              color:#737c89;
+            ">
+              ${escapeHtml(item.platform || "-")}
+              ·
+              ${escapeHtml(item.pillar || "-")}
+              ·
+              ${escapeHtml(item.format || "-")}
+            </div>
+          </div>
+
+          <div style="
+            text-align:right;
+            white-space:nowrap;
+          ">
+            <strong>
+              ${engagementRate(item).toFixed(2)}%
+            </strong>
+
+            <div style="
+              font-size:11px;
+              color:#737c89;
+            ">
+              Engagement Rate
+            </div>
+          </div>
+        </div>
+      `
+    )
+    .join("");
+
+  // =========================
+  // GROUPING FUNCTION
+  // =========================
+
+  function groupBy(field) {
+    const groups = {};
+
+    content.forEach((item) => {
+      const name = item[field] || "Tanpa Data";
+
+      if (!groups[name]) {
+        groups[name] = {
+          views: 0,
+          engagement: 0,
+          count: 0,
+        };
+      }
+
+      groups[name].views += Number(item.views || 0);
+      groups[name].engagement += engagement(item);
+      groups[name].count++;
+    });
+
+    return Object.entries(groups)
+      .map(([name, data]) => ({
+        name,
+        count: data.count,
+        views: data.views,
+        engagement: data.engagement,
+        rate:
+          data.views > 0
+            ? (data.engagement / data.views) * 100
+            : 0,
+      }))
+      .sort((a, b) => b.rate - a.rate);
+  }
+
+  const platforms = groupBy("platform");
+  const pillars = groupBy("pillar");
+  const formats = groupBy("format");
+
+  // =========================
+  // PATTERN
+  // =========================
+
+  function renderGroup(title, data) {
+    return `
+      <div style="margin-bottom:24px;">
+
+        <div style="
+          font-weight:700;
+          margin-bottom:10px;
+        ">
+          ${title}
+        </div>
+
+        ${data
+          .slice(0, 5)
+          .map(
+            (item) => `
+              <div style="
+                display:flex;
+                justify-content:space-between;
+                padding:10px 0;
+                border-bottom:1px solid #20252d;
+              ">
+
+                <span>
+                  ${escapeHtml(item.name)}
+                  <small style="color:#737c89;">
+                    (${item.count} konten)
+                  </small>
+                </span>
+
+                <strong>
+                  ${item.rate.toFixed(2)}%
+                </strong>
+
+              </div>
+            `
+          )
+          .join("")}
+
+      </div>
+    `;
+  }
+
+  patternContainer.innerHTML =
+    renderGroup("📱 Platform", platforms) +
+    renderGroup("🎯 Content Pillar", pillars) +
+    renderGroup("🎬 Format", formats);
+
+  // =========================
+  // AUTOMATED INSIGHTS
+  // =========================
+
+  const bestPlatform = platforms[0];
+  const bestPillar = pillars[0];
+  const bestFormat = formats[0];
+  const bestContent = ranked[0];
+
+  insightContainer.innerHTML = `
+    <div style="
+      display:grid;
+      gap:12px;
+    ">
+
+      <div style="
+        padding:16px;
+        border:1px solid #20252d;
+        border-radius:10px;
+      ">
+        <strong>📱 Platform Terbaik</strong>
+
+        <div style="
+          margin-top:7px;
+          color:#a4acb8;
+          line-height:1.5;
+        ">
+          <strong>${escapeHtml(bestPlatform.name)}</strong>
+          memiliki engagement rate tertinggi:
+          <strong>${bestPlatform.rate.toFixed(2)}%</strong>.
+        </div>
+      </div>
+
+      <div style="
+        padding:16px;
+        border:1px solid #20252d;
+        border-radius:10px;
+      ">
+        <strong>🎯 Content Pillar Terbaik</strong>
+
+        <div style="
+          margin-top:7px;
+          color:#a4acb8;
+          line-height:1.5;
+        ">
+          <strong>${escapeHtml(bestPillar.name)}</strong>
+          menghasilkan engagement rate:
+          <strong>${bestPillar.rate.toFixed(2)}%</strong>.
+        </div>
+      </div>
+
+      <div style="
+        padding:16px;
+        border:1px solid #20252d;
+        border-radius:10px;
+      ">
+        <strong>🎬 Format Terbaik</strong>
+
+        <div style="
+          margin-top:7px;
+          color:#a4acb8;
+          line-height:1.5;
+        ">
+          <strong>${escapeHtml(bestFormat.name)}</strong>
+          memiliki engagement rate:
+          <strong>${bestFormat.rate.toFixed(2)}%</strong>.
+        </div>
+      </div>
+
+      <div style="
+        padding:16px;
+        border:1px solid #20252d;
+        border-radius:10px;
+      ">
+        <strong>🏆 Konten Terbaik</strong>
+
+        <div style="
+          margin-top:7px;
+          color:#a4acb8;
+          line-height:1.5;
+        ">
+          <strong>${escapeHtml(bestContent.title)}</strong>
+          memiliki engagement rate:
+          <strong>${engagementRate(bestContent).toFixed(2)}%</strong>.
+        </div>
+      </div>
+
+    </div>
+  `;
+
+  // =========================
+  // UNDERPERFORMING
+  // =========================
+
+  const underperforming = [...content]
+    .sort((a, b) => engagementRate(a) - engagementRate(b))
+    .slice(0, 5);
+
+  underContainer.innerHTML = underperforming
+    .map(
+      (item, index) => `
+        <div style="
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          padding:14px 0;
+          border-bottom:1px solid #20252d;
+        ">
+
+          <div>
+            <strong>
+              ${index + 1}. ${escapeHtml(item.title)}
+            </strong>
+
+            <div style="
+              margin-top:5px;
+              font-size:12px;
+              color:#737c89;
+            ">
+              ${escapeHtml(item.platform || "-")}
+              ·
+              ${escapeHtml(item.format || "-")}
+            </div>
+          </div>
+
+          <strong>
+            ${engagementRate(item).toFixed(2)}%
+          </strong>
+
+        </div>
+      `
+    )
+    .join("");
+}
   const topContainer =
     document.getElementById("topContent");
 
