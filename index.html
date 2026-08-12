@@ -427,10 +427,13 @@
       Dashboard
     </button>
 
-    <button class="menu-item" data-view="analytics">
-      Social Analytics
-    </button>
+<button type="button" data-view="analytics">
+  📊 Social Analytics
+</button>
 
+<button type="button" data-view="comments">
+  💬 Comment Analyzer
+</button>
     <button class="menu-item" data-view="content">
       Content Database
     </button>
@@ -703,7 +706,219 @@
 
 </section>
 
+<!-- COMMENT ANALYZER -->
 
+<section class="view" id="view-comments">
+
+  <div class="panel">
+
+    <div class="panel-header">
+
+      <div>
+        <h2 class="panel-title">
+          💬 Comment Analyzer
+        </h2>
+
+        <span class="panel-note">
+          Analisis komentar audiens untuk menemukan pain,
+          desire, objection, dan kebutuhan pasar.
+        </span>
+      </div>
+
+      <label class="btn">
+        Import Comment CSV
+        <input
+          type="file"
+          id="commentCsvInput"
+          accept=".csv"
+          hidden
+        />
+      </label>
+
+    </div>
+
+
+    <div style="
+      padding:20px;
+      border:1px dashed #303642;
+      border-radius:12px;
+      text-align:center;
+      color:#737c89;
+    ">
+
+      <div style="
+        font-size:14px;
+        margin-bottom:8px;
+      ">
+        Upload CSV komentar untuk memulai analisis.
+      </div>
+
+      <div style="
+        font-size:12px;
+      ">
+        Format minimal:
+        <strong>comment</strong>
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- SUMMARY -->
+
+  <div class="cards">
+
+    <div class="card">
+      <div class="card-label">
+        Total Comments
+      </div>
+
+      <div
+        class="card-value"
+        id="commentTotal"
+      >
+        0
+      </div>
+    </div>
+
+
+    <div class="card">
+      <div class="card-label">
+        Pain Signals
+      </div>
+
+      <div
+        class="card-value"
+        id="commentPain"
+      >
+        0
+      </div>
+    </div>
+
+
+    <div class="card">
+      <div class="card-label">
+        Desire Signals
+      </div>
+
+      <div
+        class="card-value"
+        id="commentDesire"
+      >
+        0
+      </div>
+    </div>
+
+
+    <div class="card">
+      <div class="card-label">
+        Negative Signals
+      </div>
+
+      <div
+        class="card-value"
+        id="commentNegative"
+      >
+        0
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- MARKET SIGNAL -->
+
+  <div class="panel">
+
+    <div class="panel-header">
+
+      <div>
+        <h2 class="panel-title">
+          🧠 Market Signals
+        </h2>
+
+        <span class="panel-note">
+          Tema yang paling sering muncul dari komentar.
+        </span>
+      </div>
+
+    </div>
+
+    <div id="commentSignals"></div>
+
+  </div>
+
+
+  <!-- INSIGHTS -->
+
+  <div class="panel">
+
+    <div class="panel-header">
+
+      <div>
+        <h2 class="panel-title">
+          💡 Comment Insights
+        </h2>
+
+        <span class="panel-note">
+          Insight pasar berdasarkan pola komentar.
+        </span>
+      </div>
+
+    </div>
+
+    <div id="commentInsights"></div>
+
+  </div>
+
+
+  <!-- RECOMMENDATIONS -->
+
+  <div class="panel">
+
+    <div class="panel-header">
+
+      <div>
+        <h2 class="panel-title">
+          🎯 Marketing Recommendations
+        </h2>
+
+        <span class="panel-note">
+          Tindakan marketing yang dapat diuji berdasarkan suara audiens.
+        </span>
+      </div>
+
+    </div>
+
+    <div id="commentRecommendations"></div>
+
+  </div>
+
+
+  <!-- COMMENT TABLE -->
+
+  <div class="panel">
+
+    <div class="panel-header">
+
+      <div>
+        <h2 class="panel-title">
+          📋 Analyzed Comments
+        </h2>
+
+        <span class="panel-note">
+          Hasil klasifikasi komentar.
+        </span>
+      </div>
+
+    </div>
+
+    <div id="commentTable"></div>
+
+  </div>
+
+</section>
     <!-- PLACEHOLDER VIEWS -->
 
     <section class="view" id="view-research">
@@ -2211,6 +2426,968 @@ function renderAnalytics() {
     </div>
   `;
 }
+  // =====================================================
+// COMMENT ANALYZER ENGINE
+// =====================================================
+
+let analyzedComments = [];
+
+
+function normalizeComment(text) {
+
+  return String(text || "")
+    .toLowerCase()
+    .replace(/[^\w\sÀ-ÿ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+}
+
+
+function classifyComment(text) {
+
+  const t = normalizeComment(text);
+
+
+  const categories = {
+
+    Pain: [
+      "susah",
+      "sulit",
+      "masalah",
+      "bingung",
+      "takut",
+      "khawatir",
+      "gak cocok",
+      "ga cocok",
+      "nggak cocok",
+      "kurang",
+      "jelek",
+      "kecewa",
+      "ribet",
+      "sakit"
+    ],
+
+    Desire: [
+      "mau",
+      "ingin",
+      "pengen",
+      "butuh",
+      "kapan ada",
+      "semoga",
+      "wish",
+      "harap",
+      "recommend",
+      "rekomendasi"
+    ],
+
+    Price: [
+      "harga",
+      "mahal",
+      "murah",
+      "price",
+      "budget",
+      "worth",
+      "worth it",
+      "kemahalan",
+      "diskon",
+      "promo"
+    ],
+
+    Quality: [
+      "bahan",
+      "material",
+      "kualitas",
+      "quality",
+      "bagus",
+      "awet",
+      "tipis",
+      "tebal",
+      "premium",
+      "jahitan"
+    ],
+
+    Fit: [
+      "ukuran",
+      "size",
+      "fit",
+      "kebesaran",
+      "kekecilan",
+      "longgar",
+      "ketat",
+      "tinggi",
+      "pendek",
+      "badan",
+      "tb",
+      "bb"
+    ],
+
+    Style: [
+      "style",
+      "outfit",
+      "warna",
+      "warna apa",
+      "model",
+      "design",
+      "desain",
+      "clean",
+      "bagus dipakai"
+    ],
+
+    Trust: [
+      "aman",
+      "percaya",
+      "asli",
+      "ori",
+      "scam",
+      "penipu",
+      "review",
+      "testimoni",
+      "trusted"
+    ],
+
+    Convenience: [
+      "pengiriman",
+      "kirim",
+      "delivery",
+      "checkout",
+      "order",
+      "pesan",
+      "ready",
+      "stok",
+      "stock",
+      "cod"
+    ],
+
+    Social: [
+      "temen",
+      "teman",
+      "orang",
+      "cowok",
+      "cewek",
+      "keren",
+      "ganteng",
+      "viral",
+      "trend",
+      "tren"
+    ]
+
+  };
+
+
+  const matches = [];
+
+
+  Object.entries(categories).forEach(
+    ([category, keywords]) => {
+
+      const found =
+        keywords.some(
+          keyword =>
+            t.includes(keyword)
+        );
+
+      if (found) {
+        matches.push(category);
+      }
+
+    }
+  );
+
+
+  if (!matches.length) {
+
+    matches.push("General");
+
+  }
+
+
+  return matches;
+
+}
+
+
+function classifySentiment(text) {
+
+  const t = normalizeComment(text);
+
+
+  const positive = [
+    "bagus",
+    "keren",
+    "ganteng",
+    "suka",
+    "love",
+    "mantap",
+    "cakep",
+    "recommended",
+    "recommend",
+    "terbaik",
+    "worth",
+    "premium"
+  ];
+
+
+  const negative = [
+    "jelek",
+    "buruk",
+    "mahal",
+    "kemahalan",
+    "kecewa",
+    "takut",
+    "gak cocok",
+    "ga cocok",
+    "nggak cocok",
+    "susah",
+    "ribet",
+    "scam",
+    "penipu"
+  ];
+
+
+  const positiveScore =
+    positive.filter(
+      word => t.includes(word)
+    ).length;
+
+
+  const negativeScore =
+    negative.filter(
+      word => t.includes(word)
+    ).length;
+
+
+  if (negativeScore > positiveScore) {
+
+    return "Negative";
+
+  }
+
+
+  if (positiveScore > negativeScore) {
+
+    return "Positive";
+
+  }
+
+
+  return "Neutral";
+
+}
+
+
+function analyzeComment(text) {
+
+  return {
+
+    text,
+
+    categories:
+      classifyComment(text),
+
+    sentiment:
+      classifySentiment(text)
+
+  };
+
+}
+
+
+// =====================================================
+// CSV PARSER
+// =====================================================
+
+function parseCommentCSV(text) {
+
+  const lines =
+    text
+      .split(/\r?\n/)
+      .filter(Boolean);
+
+
+  if (!lines.length) {
+
+    return [];
+
+  }
+
+
+  const headers =
+    lines[0]
+      .split(",")
+      .map(
+        h =>
+          h
+            .replace(/^"|"$/g, "")
+            .trim()
+            .toLowerCase()
+      );
+
+
+  const commentIndex =
+    headers.indexOf("comment");
+
+
+  if (commentIndex === -1) {
+
+    alert(
+      "CSV harus memiliki kolom bernama: comment"
+    );
+
+    return [];
+
+  }
+
+
+  return lines
+    .slice(1)
+    .map(line => {
+
+      const values =
+        line
+          .split(",")
+          .map(
+            value =>
+              value
+                .replace(/^"|"$/g, "")
+                .trim()
+          );
+
+
+      return values[commentIndex] || "";
+
+    })
+    .filter(Boolean);
+
+}
+
+
+// =====================================================
+// COMMENT INSIGHTS
+// =====================================================
+
+function renderCommentAnalyzer() {
+
+  const total =
+    analyzedComments.length;
+
+
+  const pain =
+    analyzedComments.filter(
+      item =>
+        item.categories.includes("Pain")
+    ).length;
+
+
+  const desire =
+    analyzedComments.filter(
+      item =>
+        item.categories.includes("Desire")
+    ).length;
+
+
+  const negative =
+    analyzedComments.filter(
+      item =>
+        item.sentiment === "Negative"
+    ).length;
+
+
+  const totalEl =
+    document.getElementById(
+      "commentTotal"
+    );
+
+
+  const painEl =
+    document.getElementById(
+      "commentPain"
+    );
+
+
+  const desireEl =
+    document.getElementById(
+      "commentDesire"
+    );
+
+
+  const negativeEl =
+    document.getElementById(
+      "commentNegative"
+    );
+
+
+  if (totalEl)
+    totalEl.textContent = total;
+
+
+  if (painEl)
+    painEl.textContent = pain;
+
+
+  if (desireEl)
+    desireEl.textContent = desire;
+
+
+  if (negativeEl)
+    negativeEl.textContent = negative;
+
+
+  renderCommentSignals();
+
+  renderCommentInsights();
+
+  renderCommentRecommendations();
+
+  renderCommentTable();
+
+}
+
+
+// =====================================================
+// SIGNALS
+// =====================================================
+
+function renderCommentSignals() {
+
+  const container =
+    document.getElementById(
+      "commentSignals"
+    );
+
+
+  if (!container) return;
+
+
+  const counts = {};
+
+
+  analyzedComments.forEach(
+    item => {
+
+      item.categories.forEach(
+        category => {
+
+          counts[category] =
+            (counts[category] || 0) + 1;
+
+        }
+      );
+
+    }
+  );
+
+
+  const sorted =
+    Object.entries(counts)
+      .sort(
+        (a, b) =>
+          b[1] - a[1]
+      );
+
+
+  if (!sorted.length) {
+
+    container.innerHTML = `
+      <div style="
+        padding:16px;
+        color:#737c89;
+      ">
+        Belum ada komentar.
+      </div>
+    `;
+
+    return;
+
+  }
+
+
+  container.innerHTML =
+    sorted
+      .map(
+        ([category, count]) => `
+
+          <div style="
+            display:flex;
+            justify-content:space-between;
+            padding:12px 0;
+            border-bottom:1px solid #20252d;
+          ">
+
+            <strong>
+              ${escapeHtml(category)}
+            </strong>
+
+            <span>
+              ${count} signal
+            </span>
+
+          </div>
+
+        `
+      )
+      .join("");
+
+}
+
+
+// =====================================================
+// INSIGHTS
+// =====================================================
+
+function renderCommentInsights() {
+
+  const container =
+    document.getElementById(
+      "commentInsights"
+    );
+
+
+  if (!container) return;
+
+
+  const categoryCounts = {};
+
+
+  analyzedComments.forEach(
+    item => {
+
+      item.categories.forEach(
+        category => {
+
+          categoryCounts[category] =
+            (categoryCounts[category] || 0) + 1;
+
+        }
+      );
+
+    }
+  );
+
+
+  const sorted =
+    Object.entries(categoryCounts)
+      .sort(
+        (a, b) =>
+          b[1] - a[1]
+      );
+
+
+  if (!sorted.length) {
+
+    container.innerHTML = `
+      <div style="
+        color:#737c89;
+      ">
+        Import komentar untuk melihat insight.
+      </div>
+    `;
+
+    return;
+
+  }
+
+
+  const [topCategory, topCount] =
+    sorted[0];
+
+
+  const percentage =
+    (
+      topCount /
+      analyzedComments.length *
+      100
+    ).toFixed(1);
+
+
+  container.innerHTML = `
+
+    <div style="
+      padding:16px;
+      border:1px solid #20252d;
+      border-radius:10px;
+      line-height:1.6;
+    ">
+
+      <strong>
+        💡 Dominant Market Signal
+      </strong>
+
+      <div style="
+        margin-top:8px;
+        color:#a4acb8;
+      ">
+
+        Kategori
+        <strong>
+          ${escapeHtml(topCategory)}
+        </strong>
+        merupakan signal paling dominan
+        dengan
+        <strong>
+          ${topCount}
+        </strong>
+        komentar
+        (${percentage}% dari seluruh komentar).
+
+      </div>
+
+    </div>
+
+  `;
+
+}
+
+
+// =====================================================
+// RECOMMENDATIONS
+// =====================================================
+
+function renderCommentRecommendations() {
+
+  const container =
+    document.getElementById(
+      "commentRecommendations"
+    );
+
+
+  if (!container) return;
+
+
+  const counts = {};
+
+
+  analyzedComments.forEach(
+    item => {
+
+      item.categories.forEach(
+        category => {
+
+          counts[category] =
+            (counts[category] || 0) + 1;
+
+        }
+      );
+
+    }
+  );
+
+
+  const recommendations = [];
+
+
+  if (counts.Fit) {
+
+    recommendations.push(
+      "Tampilkan size chart, detail ukuran, dan contoh fit agar keraguan mengenai kecocokan produk berkurang."
+    );
+
+  }
+
+
+  if (counts.Price) {
+
+    recommendations.push(
+      "Perjelas value produk, kualitas material, dan alasan harga agar objection terhadap harga lebih mudah dijawab."
+    );
+
+  }
+
+
+  if (counts.Quality) {
+
+    recommendations.push(
+      "Tampilkan detail material, jahitan, tekstur, dan durability untuk memperkuat persepsi kualitas."
+    );
+
+  }
+
+
+  if (counts.Style) {
+
+    recommendations.push(
+      "Gunakan konten styling dan contoh outfit untuk membantu audiens membayangkan penggunaan produk."
+    );
+
+  }
+
+
+  if (counts.Trust) {
+
+    recommendations.push(
+      "Tambahkan social proof seperti review, testimonial, atau user-generated content."
+    );
+
+  }
+
+
+  if (counts.Convenience) {
+
+    recommendations.push(
+      "Perjelas informasi stok, pengiriman, cara order, dan proses checkout."
+    );
+
+  }
+
+
+  if (counts.Pain) {
+
+    recommendations.push(
+      "Gunakan pain point yang paling sering muncul sebagai bahan utama hook konten."
+    );
+
+  }
+
+
+  if (!recommendations.length) {
+
+    recommendations.push(
+      "Kumpulkan lebih banyak komentar agar pola kebutuhan audiens dapat dianalisis dengan lebih kuat."
+    );
+
+  }
+
+
+  container.innerHTML = `
+
+    <div style="
+      display:grid;
+      gap:10px;
+    ">
+
+      ${recommendations
+        .map(
+          (recommendation, index) => `
+
+            <div style="
+              padding:15px;
+              border:1px solid #20252d;
+              border-radius:10px;
+              line-height:1.5;
+            ">
+
+              <strong>
+                ${index + 1}.
+              </strong>
+
+              ${escapeHtml(
+                recommendation
+              )}
+
+            </div>
+
+          `
+        )
+        .join("")}
+
+    </div>
+
+  `;
+
+}
+
+
+// =====================================================
+// COMMENT TABLE
+// =====================================================
+
+function renderCommentTable() {
+
+  const container =
+    document.getElementById(
+      "commentTable"
+    );
+
+
+  if (!container) return;
+
+
+  if (!analyzedComments.length) {
+
+    container.innerHTML = `
+      <div style="
+        padding:16px;
+        color:#737c89;
+      ">
+        Belum ada komentar yang dianalisis.
+      </div>
+    `;
+
+    return;
+
+  }
+
+
+  container.innerHTML = `
+
+    <div style="
+      overflow:auto;
+    ">
+
+      <table style="
+        width:100%;
+        border-collapse:collapse;
+      ">
+
+        <thead>
+
+          <tr>
+
+            <th style="text-align:left;padding:10px;">
+              Comment
+            </th>
+
+            <th style="text-align:left;padding:10px;">
+              Category
+            </th>
+
+            <th style="text-align:left;padding:10px;">
+              Sentiment
+            </th>
+
+          </tr>
+
+        </thead>
+
+        <tbody>
+
+          ${analyzedComments
+            .map(
+              item => `
+
+                <tr>
+
+                  <td style="
+                    padding:10px;
+                    border-top:1px solid #20252d;
+                  ">
+                    ${escapeHtml(item.text)}
+                  </td>
+
+                  <td style="
+                    padding:10px;
+                    border-top:1px solid #20252d;
+                  ">
+                    ${escapeHtml(
+                      item.categories.join(", ")
+                    )}
+                  </td>
+
+                  <td style="
+                    padding:10px;
+                    border-top:1px solid #20252d;
+                  ">
+                    ${escapeHtml(
+                      item.sentiment
+                    )}
+                  </td>
+
+                </tr>
+
+              `
+            )
+            .join("")}
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  `;
+
+}
+
+
+// =====================================================
+// IMPORT COMMENT CSV
+// =====================================================
+
+const commentCsvInput =
+  document.getElementById(
+    "commentCsvInput"
+  );
+
+
+if (commentCsvInput) {
+
+  commentCsvInput.addEventListener(
+    "change",
+    event => {
+
+      const file =
+        event.target.files[0];
+
+
+      if (!file) return;
+
+
+      const reader =
+        new FileReader();
+
+
+      reader.onload = () => {
+
+        const comments =
+          parseCommentCSV(
+            reader.result
+          );
+
+
+        analyzedComments =
+          comments.map(
+            comment =>
+              analyzeComment(comment)
+          );
+
+
+        localStorage.setItem(
+          "analsytici-comments",
+          JSON.stringify(
+            analyzedComments
+          )
+        );
+
+
+        renderCommentAnalyzer();
+
+      };
+
+
+      reader.readAsText(file);
+
+    }
+  );
+
+}
+
+
+// =====================================================
+// LOAD SAVED COMMENTS
+// =====================================================
+
+try {
+
+  const savedComments =
+    JSON.parse(
+      localStorage.getItem(
+        "analsytici-comments"
+      ) || "[]"
+    );
+
+
+  if (Array.isArray(savedComments)) {
+
+    analyzedComments =
+      savedComments;
+
+  }
+
+} catch (error) {
+
+  analyzedComments = [];
+
+}
 function renderAll() {
 
   renderContentTable();
@@ -2220,6 +3397,10 @@ function renderAll() {
   renderAnalytics();
 
   renderRecommendations();
+
+  renderCommentAnalyzer();
+
+}
 
 }
 
