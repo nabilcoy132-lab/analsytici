@@ -5,18 +5,32 @@
 
   function getAuth() {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || null;
+      const data = localStorage.getItem(STORAGE_KEY);
+      return data ? JSON.parse(data) : null;
     } catch (error) {
+      console.error("Failed to read auth:", error);
       return null;
     }
   }
 
   function saveAuth(user) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+    try {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(user)
+      );
+    } catch (error) {
+      console.error("Failed to save auth:", error);
+    }
+  }
+
+  function clearAuth() {
+    localStorage.removeItem(STORAGE_KEY);
   }
 
   function showElement(id) {
     const el = document.getElementById(id);
+
     if (el) {
       el.classList.remove("hidden");
     }
@@ -24,6 +38,7 @@
 
   function hideElement(id) {
     const el = document.getElementById(id);
+
     if (el) {
       el.classList.add("hidden");
     }
@@ -35,7 +50,6 @@
     showElement("loginScreen");
     hideElement("signupScreen");
     hideElement("onboardingScreen");
-
     hideElement("mainApp");
   }
 
@@ -45,7 +59,6 @@
     hideElement("loginScreen");
     showElement("signupScreen");
     hideElement("onboardingScreen");
-
     hideElement("mainApp");
   }
 
@@ -55,7 +68,6 @@
     hideElement("loginScreen");
     hideElement("signupScreen");
     showElement("onboardingScreen");
-
     hideElement("mainApp");
   }
 
@@ -64,7 +76,6 @@
     hideElement("authApp");
     showElement("mainApp");
 
-    // Beri tahu app.js bahwa user sudah masuk
     window.dispatchEvent(
       new CustomEvent("analsytici:authenticated")
     );
@@ -87,24 +98,38 @@
   }
 
   function demoLogin() {
+    console.log("Starting demo login...");
+
     const user = createDemoUser();
 
-    console.log("ANALSYTICI Demo Login:", user);
+    console.log(
+      "ANALSYTICI Demo Login:",
+      user
+    );
 
     showMainApp();
 
-    // Masuk ke dashboard
     window.location.hash = "#/dashboard";
   }
 
   function handleLogin(event) {
     event.preventDefault();
 
-    const emailInput = document.getElementById("loginEmail");
-    const passwordInput = document.getElementById("loginPassword");
+    const emailInput =
+      document.getElementById("loginEmail");
 
-    const email = emailInput ? emailInput.value.trim() : "";
-    const password = passwordInput ? passwordInput.value : "";
+    const passwordInput =
+      document.getElementById("loginPassword");
+
+    const email =
+      emailInput
+        ? emailInput.value.trim()
+        : "";
+
+    const password =
+      passwordInput
+        ? passwordInput.value
+        : "";
 
     if (!email) {
       alert("Masukkan email terlebih dahulu.");
@@ -173,10 +198,10 @@
 
     const user = {
       id: "user-" + Date.now(),
-      name,
-      email,
-      company,
-      role,
+      name: name,
+      email: email,
+      company: company,
+      role: role,
       isDemo: false,
       createdAt: new Date().toISOString()
     };
@@ -185,111 +210,154 @@
 
     showOnboarding();
 
-    console.log("Workspace created:", user);
+    console.log(
+      "Workspace created:",
+      user
+    );
   }
 
   function bindEvents() {
-    // Demo Login
-    document.querySelectorAll(
-      '[data-action="demo-login"]'
-    ).forEach(function (button) {
-      button.addEventListener("click", demoLogin);
-    });
 
-    // Show signup
-    document.querySelectorAll(
-      '[data-action="show-signup"]'
-    ).forEach(function (button) {
-      button.addEventListener("click", showSignup);
-    });
-
-    // Show login
-    document.querySelectorAll(
-      '[data-action="show-login"]'
-    ).forEach(function (button) {
-      button.addEventListener("click", showLogin);
-    });
-
-    // Login form
-    const loginForm = document.getElementById("loginForm");
-
-    if (loginForm) {
-      loginForm.addEventListener("submit", handleLogin);
-    }
-
-    // Signup form
-    const signupForm = document.getElementById("signupForm");
-
-    if (signupForm) {
-      signupForm.addEventListener("submit", handleSignup);
-    }
-
-    // Toggle password
-    document.querySelectorAll(
-      '[data-action="toggle-password"]'
-    ).forEach(function (button) {
-      button.addEventListener("click", function () {
-        const targetId = button.dataset.target;
-        const input = document.getElementById(targetId);
-
-        if (!input) return;
-
-        if (input.type === "password") {
-          input.type = "text";
-          button.textContent = "◉";
-        } else {
-          input.type = "password";
-          button.textContent = "◉";
-        }
-      });
-    });
-
-    // Forgot password
-    document.querySelectorAll(
-      '[data-action="forgot-password"]'
-    ).forEach(function (button) {
-      button.addEventListener("click", function () {
-        alert(
-          "Password recovery akan tersedia ketika backend authentication sudah dipasang."
+    document
+      .querySelectorAll(
+        '[data-action="demo-login"]'
+      )
+      .forEach(function (button) {
+        button.addEventListener(
+          "click",
+          demoLogin
         );
       });
-    });
+
+    document
+      .querySelectorAll(
+        '[data-action="show-signup"]'
+      )
+      .forEach(function (button) {
+        button.addEventListener(
+          "click",
+          showSignup
+        );
+      });
+
+    document
+      .querySelectorAll(
+        '[data-action="show-login"]'
+      )
+      .forEach(function (button) {
+        button.addEventListener(
+          "click",
+          showLogin
+        );
+      });
+
+    const loginForm =
+      document.getElementById("loginForm");
+
+    if (loginForm) {
+      loginForm.addEventListener(
+        "submit",
+        handleLogin
+      );
+    }
+
+    const signupForm =
+      document.getElementById("signupForm");
+
+    if (signupForm) {
+      signupForm.addEventListener(
+        "submit",
+        handleSignup
+      );
+    }
+
+    document
+      .querySelectorAll(
+        '[data-action="toggle-password"]'
+      )
+      .forEach(function (button) {
+
+        button.addEventListener(
+          "click",
+          function () {
+
+            const targetId =
+              button.dataset.target;
+
+            const input =
+              document.getElementById(
+                targetId
+              );
+
+            if (!input) {
+              return;
+            }
+
+            if (input.type === "password") {
+              input.type = "text";
+            } else {
+              input.type = "password";
+            }
+          }
+        );
+      });
+
+    document
+      .querySelectorAll(
+        '[data-action="forgot-password"]'
+      )
+      .forEach(function (button) {
+
+        button.addEventListener(
+          "click",
+          function () {
+
+            alert(
+              "Password recovery akan tersedia ketika backend authentication sudah dipasang."
+            );
+
+          }
+        );
+
+      });
   }
 
   function init() {
     bindEvents();
 
-    const existingAuth = getAuth();
-
-    // Untuk sekarang jangan otomatis masuk.
-    // User tetap melihat halaman login.
-    if (existingAuth) {
-      console.log(
-        "Saved ANALSYTICI workspace ditemukan:",
-        existingAuth
-      );
-    }
-
     hideElement("appBoot");
+
     showElement("authApp");
 
     showLogin();
+
+    console.log(
+      "ANALSYTICI Auth initialized."
+    );
   }
 
-  // Expose API
   window.ANALSYTICI_AUTH = {
-    getAuth,
-    saveAuth,
-    showLogin,
-    showSignup,
-    showOnboarding,
-    showMainApp,
-    demoLogin
+    getAuth: getAuth,
+    saveAuth: saveAuth,
+    clearAuth: clearAuth,
+    showLogin: showLogin,
+    showSignup: showSignup,
+    showOnboarding: showOnboarding,
+    showMainApp: showMainApp,
+    demoLogin: demoLogin
   };
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
+
+    document.addEventListener(
+      "DOMContentLoaded",
+      init
+    );
+
   } else {
+
     init();
+
   }
+
 })();
