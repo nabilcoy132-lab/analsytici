@@ -588,51 +588,109 @@
 
     <!-- ANALYTICS -->
 
-    <section class="view" id="view-analytics">
+<section class="view" id="view-analytics">
 
-      <div class="cards">
+  <div class="cards">
 
-        <div class="card">
-          <div class="card-label">Total Content</div>
-          <div class="card-value" id="analyticsContent">0</div>
-        </div>
+    <div class="card">
+      <div class="card-label">Total Content</div>
+      <div class="card-value" id="analyticsContent">0</div>
+    </div>
 
-        <div class="card">
-          <div class="card-label">Views</div>
-          <div class="card-value" id="analyticsViews">0</div>
-        </div>
+    <div class="card">
+      <div class="card-label">Total Views</div>
+      <div class="card-value" id="analyticsViews">0</div>
+    </div>
 
-        <div class="card">
-          <div class="card-label">Engagement</div>
-          <div class="card-value" id="analyticsEngagement">0</div>
-        </div>
+    <div class="card">
+      <div class="card-label">Total Engagement</div>
+      <div class="card-value" id="analyticsEngagement">0</div>
+    </div>
 
-        <div class="card">
-          <div class="card-label">Engagement Rate</div>
-          <div class="card-value" id="analyticsRate">0%</div>
-        </div>
+    <div class="card">
+      <div class="card-label">Engagement Rate</div>
+      <div class="card-value" id="analyticsRate">0%</div>
+    </div>
 
+  </div>
+
+
+  <!-- TOP CONTENT -->
+
+  <div class="panel">
+
+    <div class="panel-header">
+      <div>
+        <h2 class="panel-title">🏆 Top Performing Content</h2>
+
+        <span class="panel-note">
+          Konten dengan engagement rate tertinggi.
+        </span>
       </div>
+    </div>
 
-      <div class="panel">
+    <div id="topContent"></div>
 
-        <div class="panel-header">
-          <div>
-            <h2 class="panel-title">Social Analytics</h2>
-            <span class="panel-note">
-              Analytics akan menggunakan data Content Database.
-            </span>
-          </div>
-        </div>
+  </div>
 
-        <div class="empty">
-          Automated Insights akan kita bangun setelah database dan
-          analytics engine selesai.
-        </div>
 
+  <!-- CONTENT PATTERN -->
+
+  <div class="panel">
+
+    <div class="panel-header">
+      <div>
+        <h2 class="panel-title">📊 Content Pattern</h2>
+
+        <span class="panel-note">
+          Perbandingan performa berdasarkan platform, pillar, dan format.
+        </span>
       </div>
+    </div>
 
-    </section>
+    <div id="contentPatterns"></div>
+
+  </div>
+
+
+  <!-- INSIGHTS -->
+
+  <div class="panel">
+
+    <div class="panel-header">
+      <div>
+        <h2 class="panel-title">💡 Automated Insights</h2>
+
+        <span class="panel-note">
+          Insight otomatis berdasarkan data konten kamu.
+        </span>
+      </div>
+    </div>
+
+    <div id="automatedInsights"></div>
+
+  </div>
+
+
+  <!-- UNDERPERFORMING -->
+
+  <div class="panel">
+
+    <div class="panel-header">
+      <div>
+        <h2 class="panel-title">⚠️ Underperforming Content</h2>
+
+        <span class="panel-note">
+          Konten dengan engagement rate terendah.
+        </span>
+      </div>
+    </div>
+
+    <div id="underperformingContent"></div>
+
+  </div>
+
+</section>
 
 
     <!-- PLACEHOLDER VIEWS -->
@@ -1023,14 +1081,589 @@
       rate.toFixed(2) + "%";
   }
 
+function renderAnalytics() {
 
-  function renderAll() {
+  const topContainer =
+    document.getElementById("topContent");
 
-    renderContentTable();
+  const patternContainer =
+    document.getElementById("contentPatterns");
 
-    renderStats();
+  const insightContainer =
+    document.getElementById("automatedInsights");
+
+  const underContainer =
+    document.getElementById("underperformingContent");
+
+
+  if (!topContainer) return;
+
+
+  if (!content.length) {
+
+    topContainer.innerHTML = `
+      <div class="empty">
+        Belum ada data konten untuk dianalisis.
+      </div>
+    `;
+
+    patternContainer.innerHTML = "";
+    insightContainer.innerHTML = "";
+    underContainer.innerHTML = "";
+
+    return;
+  }
+
+
+  // =========================
+  // TOP PERFORMING CONTENT
+  // =========================
+
+  const ranked = [...content].sort(
+    (a, b) =>
+      engagementRate(b) -
+      engagementRate(a)
+  );
+
+
+  const top = ranked.slice(0, 5);
+
+
+  topContainer.innerHTML = top.map(
+    (item, index) => `
+
+      <div style="
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        gap:20px;
+        padding:15px 0;
+        border-bottom:1px solid #20252d;
+      ">
+
+        <div>
+
+          <div style="
+            font-weight:700;
+            margin-bottom:5px;
+          ">
+            ${index + 1}. ${escapeHtml(item.title)}
+          </div>
+
+          <div style="
+            font-size:12px;
+            color:#737c89;
+          ">
+            ${escapeHtml(item.platform)}
+            ·
+            ${escapeHtml(item.pillar)}
+            ·
+            ${escapeHtml(item.format)}
+          </div>
+
+        </div>
+
+        <div style="
+          text-align:right;
+          white-space:nowrap;
+        ">
+
+          <div style="
+            font-weight:700;
+          ">
+            ${engagementRate(item).toFixed(2)}%
+          </div>
+
+          <div style="
+            font-size:11px;
+            color:#737c89;
+          ">
+            Engagement Rate
+          </div>
+
+        </div>
+
+      </div>
+
+    `
+  ).join("");
+
+
+  // =========================
+  // GROUP BY PLATFORM
+  // =========================
+
+  const platformGroups = {};
+
+
+  content.forEach(item => {
+
+    const key =
+      item.platform || "Unknown";
+
+    if (!platformGroups[key]) {
+
+      platformGroups[key] = {
+        views: 0,
+        engagement: 0,
+        count: 0
+      };
+
+    }
+
+
+    platformGroups[key].views +=
+      Number(item.views || 0);
+
+    platformGroups[key].engagement +=
+      engagement(item);
+
+    platformGroups[key].count++;
+
+  });
+
+
+  const platformResults =
+    Object.entries(platformGroups)
+      .map(([name, data]) => {
+
+        const rate =
+          data.views > 0
+            ? data.engagement /
+              data.views *
+              100
+            : 0;
+
+        return {
+          name,
+          ...data,
+          rate
+        };
+
+      })
+      .sort(
+        (a, b) =>
+          b.rate - a.rate
+      );
+
+
+  // =========================
+  // GROUP BY PILLAR
+  // =========================
+
+  const pillarGroups = {};
+
+
+  content.forEach(item => {
+
+    const key =
+      item.pillar || "Tanpa Pillar";
+
+    if (!pillarGroups[key]) {
+
+      pillarGroups[key] = {
+        views: 0,
+        engagement: 0,
+        count: 0
+      };
+
+    }
+
+
+    pillarGroups[key].views +=
+      Number(item.views || 0);
+
+    pillarGroups[key].engagement +=
+      engagement(item);
+
+    pillarGroups[key].count++;
+
+  });
+
+
+  const pillarResults =
+    Object.entries(pillarGroups)
+      .map(([name, data]) => {
+
+        const rate =
+          data.views > 0
+            ? data.engagement /
+              data.views *
+              100
+            : 0;
+
+        return {
+          name,
+          ...data,
+          rate
+        };
+
+      })
+      .sort(
+        (a, b) =>
+          b.rate - a.rate
+      );
+
+
+  // =========================
+  // GROUP BY FORMAT
+  // =========================
+
+  const formatGroups = {};
+
+
+  content.forEach(item => {
+
+    const key =
+      item.format || "Unknown";
+
+    if (!formatGroups[key]) {
+
+      formatGroups[key] = {
+        views: 0,
+        engagement: 0,
+        count: 0
+      };
+
+    }
+
+
+    formatGroups[key].views +=
+      Number(item.views || 0);
+
+    formatGroups[key].engagement +=
+      engagement(item);
+
+    formatGroups[key].count++;
+
+  });
+
+
+  const formatResults =
+    Object.entries(formatGroups)
+      .map(([name, data]) => {
+
+        const rate =
+          data.views > 0
+            ? data.engagement /
+              data.views *
+              100
+            : 0;
+
+        return {
+          name,
+          ...data,
+          rate
+        };
+
+      })
+      .sort(
+        (a, b) =>
+          b.rate - a.rate
+      );
+
+
+  // =========================
+  // CONTENT PATTERN UI
+  // =========================
+
+  function patternHTML(title, results) {
+
+    return `
+
+      <div style="
+        margin-bottom:22px;
+      ">
+
+        <div style="
+          font-weight:700;
+          margin-bottom:10px;
+        ">
+          ${title}
+        </div>
+
+        ${results
+          .slice(0, 5)
+          .map(item => `
+
+            <div style="
+              display:flex;
+              justify-content:space-between;
+              padding:9px 0;
+              border-bottom:1px solid #20252d;
+            ">
+
+              <span>
+                ${escapeHtml(item.name)}
+                <small style="
+                  color:#69727f;
+                ">
+                  (${item.count} konten)
+                </small>
+              </span>
+
+              <strong>
+                ${item.rate.toFixed(2)}%
+              </strong>
+
+            </div>
+
+          `)
+          .join("")}
+
+      </div>
+
+    `;
 
   }
+
+
+  patternContainer.innerHTML =
+
+    patternHTML(
+      "Platform",
+      platformResults
+    ) +
+
+    patternHTML(
+      "Content Pillar",
+      pillarResults
+    ) +
+
+    patternHTML(
+      "Format",
+      formatResults
+    );
+
+
+  // =========================
+  // AUTOMATED INSIGHTS
+  // =========================
+
+  const bestPlatform =
+    platformResults[0];
+
+  const bestPillar =
+    pillarResults[0];
+
+  const bestFormat =
+    formatResults[0];
+
+  const bestContent =
+    ranked[0];
+
+
+  const insights = [];
+
+
+  if (bestPlatform) {
+
+    insights.push(`
+      <div style="
+        padding:15px;
+        border:1px solid #20252d;
+        border-radius:9px;
+        margin-bottom:10px;
+      ">
+
+        <strong>
+          📱 Platform terbaik
+        </strong>
+
+        <div style="
+          margin-top:7px;
+          color:#a4acb8;
+          line-height:1.5;
+        ">
+          ${escapeHtml(bestPlatform.name)}
+          memiliki engagement rate tertinggi
+          sebesar
+          <strong>
+            ${bestPlatform.rate.toFixed(2)}%
+          </strong>.
+        </div>
+
+      </div>
+    `);
+
+  }
+
+
+  if (bestPillar) {
+
+    insights.push(`
+      <div style="
+        padding:15px;
+        border:1px solid #20252d;
+        border-radius:9px;
+        margin-bottom:10px;
+      ">
+
+        <strong>
+          🎯 Content pillar terkuat
+        </strong>
+
+        <div style="
+          margin-top:7px;
+          color:#a4acb8;
+          line-height:1.5;
+        ">
+          Pillar
+          <strong>
+            ${escapeHtml(bestPillar.name)}
+          </strong>
+          menghasilkan engagement rate
+          rata-rata
+          <strong>
+            ${bestPillar.rate.toFixed(2)}%
+          </strong>.
+        </div>
+
+      </div>
+    `);
+
+  }
+
+
+  if (bestFormat) {
+
+    insights.push(`
+      <div style="
+        padding:15px;
+        border:1px solid #20252d;
+        border-radius:9px;
+        margin-bottom:10px;
+      ">
+
+        <strong>
+          🎬 Format paling efektif
+        </strong>
+
+        <div style="
+          margin-top:7px;
+          color:#a4acb8;
+          line-height:1.5;
+        ">
+          Format
+          <strong>
+            ${escapeHtml(bestFormat.name)}
+          </strong>
+          memiliki engagement rate rata-rata
+          <strong>
+            ${bestFormat.rate.toFixed(2)}%
+          </strong>.
+        </div>
+
+      </div>
+    `);
+
+  }
+
+
+  if (bestContent) {
+
+    insights.push(`
+      <div style="
+        padding:15px;
+        border:1px solid #20252d;
+        border-radius:9px;
+        margin-bottom:10px;
+      ">
+
+        <strong>
+          🏆 Konten terbaik
+        </strong>
+
+        <div style="
+          margin-top:7px;
+          color:#a4acb8;
+          line-height:1.5;
+        ">
+          <strong>
+            ${escapeHtml(bestContent.title)}
+          </strong>
+          memiliki engagement rate
+          sebesar
+          <strong>
+            ${engagementRate(bestContent).toFixed(2)}%
+          </strong>.
+        </div>
+
+      </div>
+    `);
+
+  }
+
+
+  insightContainer.innerHTML =
+    insights.join("");
+
+
+  // =========================
+  // UNDERPERFORMING
+  // =========================
+
+  const underperforming =
+    [...content]
+      .sort(
+        (a, b) =>
+          engagementRate(a) -
+          engagementRate(b)
+      )
+      .slice(0, 5);
+
+
+  underContainer.innerHTML =
+    underperforming.map(
+      (item, index) => `
+
+        <div style="
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          gap:20px;
+          padding:14px 0;
+          border-bottom:1px solid #20252d;
+        ">
+
+          <div>
+
+            <strong>
+              ${index + 1}.
+              ${escapeHtml(item.title)}
+            </strong>
+
+            <div style="
+              color:#737c89;
+              font-size:12px;
+              margin-top:5px;
+            ">
+              ${escapeHtml(item.platform)}
+              ·
+              ${escapeHtml(item.format)}
+            </div>
+
+          </div>
+
+          <strong>
+            ${engagementRate(item).toFixed(2)}%
+          </strong>
+
+        </div>
+
+      `
+    ).join("");
+
+}
+function renderAll() {
+
+  renderContentTable();
+
+  renderStats();
+
+  renderAnalytics();
+
+}
 
 
   function escapeHtml(value) {
