@@ -668,7 +668,18 @@
     </div>
 
     <div id="automatedInsights"></div>
+<div class="panel" style="margin-top:20px;">
+  <div class="panel-header">
+    <div>
+      <h2 class="panel-title">🎯 Recommendation Engine</h2>
+      <span class="panel-note">
+        Rekomendasi tindakan berdasarkan pola performa konten.
+      </span>
+    </div>
+  </div>
 
+  <div id="recommendations"></div>
+</div>
   </div>
 
 
@@ -1960,6 +1971,246 @@ function renderAnalytics() {
     ).join("");
 
 }
+  function renderRecommendations() {
+  const container = document.getElementById("recommendations");
+
+  if (!container) return;
+
+  if (!content || !content.length) {
+    container.innerHTML = `
+      <div style="
+        padding:16px;
+        color:#737c89;
+      ">
+        Belum ada data yang cukup untuk membuat rekomendasi.
+      </div>
+    `;
+    return;
+  }
+
+  const ranked = [...content].sort(
+    (a, b) => engagementRate(b) - engagementRate(a)
+  );
+
+  const bestContent = ranked[0];
+
+  // =========================
+  // GROUPING
+  // =========================
+
+  function groupBy(field) {
+    const groups = {};
+
+    content.forEach((item) => {
+      const name = item[field] || "Tanpa Data";
+
+      if (!groups[name]) {
+        groups[name] = {
+          views: 0,
+          engagement: 0,
+          count: 0
+        };
+      }
+
+      groups[name].views += Number(item.views || 0);
+      groups[name].engagement += engagement(item);
+      groups[name].count++;
+    });
+
+    return Object.entries(groups)
+      .map(([name, data]) => ({
+        name,
+        count: data.count,
+        views: data.views,
+        engagement: data.engagement,
+        rate:
+          data.views > 0
+            ? (data.engagement / data.views) * 100
+            : 0
+      }))
+      .sort((a, b) => b.rate - a.rate);
+  }
+
+  const platforms = groupBy("platform");
+  const pillars = groupBy("pillar");
+  const formats = groupBy("format");
+
+  const bestPlatform = platforms[0];
+  const bestPillar = pillars[0];
+  const bestFormat = formats[0];
+
+  // =========================
+  // OVERALL AVERAGE
+  // =========================
+
+  const totalViews = content.reduce(
+    (sum, item) => sum + Number(item.views || 0),
+    0
+  );
+
+  const totalEngagement = content.reduce(
+    (sum, item) => sum + engagement(item),
+    0
+  );
+
+  const averageRate =
+    totalViews > 0
+      ? (totalEngagement / totalViews) * 100
+      : 0;
+
+  // =========================
+  // RECOMMENDATIONS
+  // =========================
+
+  const recommendations = [];
+
+  if (bestFormat) {
+    recommendations.push({
+      title: "Prioritaskan format " + bestFormat.name,
+      description:
+        `Format ${bestFormat.name} memiliki engagement rate ` +
+        `${bestFormat.rate.toFixed(2)}%, ` +
+        `sehingga layak menjadi salah satu format utama untuk eksperimen berikutnya.`,
+      action:
+        `Buat 3–5 konten baru dengan format ${bestFormat.name} ` +
+        `dan uji beberapa variasi topik atau hook.`
+    });
+  }
+
+  if (bestPillar) {
+    recommendations.push({
+      title: "Perkuat pillar " + bestPillar.name,
+      description:
+        `Pillar ${bestPillar.name} menghasilkan engagement rate ` +
+        `${bestPillar.rate.toFixed(2)}%, ` +
+        `yang menjadikannya salah satu pola konten paling kuat.`,
+      action:
+        `Buat beberapa variasi konten dari pillar ${bestPillar.name} ` +
+        `tanpa hanya mengulang topik yang sama.`
+    });
+  }
+
+  if (bestPlatform) {
+    recommendations.push({
+      title: "Optimalkan platform " + bestPlatform.name,
+      description:
+        `Platform ${bestPlatform.name} memiliki engagement rate ` +
+        `${bestPlatform.rate.toFixed(2)}% berdasarkan data yang tersedia.`,
+      action:
+        `Gunakan platform ${bestPlatform.name} sebagai salah satu ` +
+        `prioritas distribusi dan lakukan pengujian konten secara konsisten.`
+    });
+  }
+
+  if (bestContent) {
+    recommendations.push({
+      title: "Jadikan konten terbaik sebagai benchmark",
+      description:
+        `"${bestContent.title}" memiliki engagement rate ` +
+        `${engagementRate(bestContent).toFixed(2)}%.`,
+      action:
+        `Pelajari kembali format, pillar, platform, dan karakteristik ` +
+        `konten tersebut lalu buat beberapa variasi baru.`
+    });
+  }
+
+  // =========================
+  // EXPERIMENT PLAN
+  // =========================
+
+  const experiment = `
+    <div style="
+      margin-top:18px;
+      padding:16px;
+      border:1px solid #20252d;
+      border-radius:10px;
+    ">
+
+      <strong>🧪 Suggested Experiment</strong>
+
+      <div style="
+        margin-top:10px;
+        color:#a4acb8;
+        line-height:1.6;
+      ">
+
+        Buat <strong>5 konten eksperimen</strong> dengan pola:
+
+        <br><br>
+
+        <strong>Format:</strong>
+        ${escapeHtml(bestFormat?.name || "-")}
+
+        <br>
+
+        <strong>Pillar:</strong>
+        ${escapeHtml(bestPillar?.name || "-")}
+
+        <br>
+
+        <strong>Platform:</strong>
+        ${escapeHtml(bestPlatform?.name || "-")}
+
+        <br><br>
+
+        Gunakan beberapa variasi hook dan topik.
+        Bandingkan hasilnya dengan rata-rata engagement rate
+        saat ini sebesar
+        <strong>${averageRate.toFixed(2)}%</strong>.
+
+      </div>
+    </div>
+  `;
+
+  // =========================
+  // RENDER
+  // =========================
+
+  container.innerHTML = `
+
+    <div style="
+      display:grid;
+      gap:12px;
+    ">
+
+      ${recommendations.map((item, index) => `
+        <div style="
+          padding:16px;
+          border:1px solid #20252d;
+          border-radius:10px;
+        ">
+
+          <div style="
+            font-weight:700;
+            margin-bottom:8px;
+          ">
+            ${index + 1}. ${escapeHtml(item.title)}
+          </div>
+
+          <div style="
+            color:#a4acb8;
+            line-height:1.5;
+            margin-bottom:10px;
+          ">
+            ${escapeHtml(item.description)}
+          </div>
+
+          <div style="
+            font-size:13px;
+            line-height:1.5;
+          ">
+            <strong>Action:</strong>
+            ${escapeHtml(item.action)}
+          </div>
+
+        </div>
+      `).join("")}
+
+      ${experiment}
+
+    </div>
+  `;
+}
 function renderAll() {
 
   renderContentTable();
@@ -1967,6 +2218,8 @@ function renderAll() {
   renderStats();
 
   renderAnalytics();
+
+  renderRecommendations();
 
 }
 
